@@ -1,6 +1,6 @@
 import EmailVerificationToken from '#/models/emailVerificationToken';
 import nodemailer from 'nodemailer';
-import { MAILTRAP_PASS, MAILTRAP_USER, VERIFICATION_EMAIL } from "#/utils/variables";
+import { MAILTRAP_PASS, MAILTRAP_USER, SIGN_IN_URL, VERIFICATION_EMAIL } from "#/utils/variables";
 import { generateToken } from "#/utils/helper";
 import { generateTemplate } from "#/mail/template";
 import path from 'path';
@@ -24,13 +24,15 @@ interface Profile{
     userId: string;
 }
 
+interface Options{
+    email: string;
+    link: string;
+}
+
 export const sendVerificationMail = async (token: string, profile: Profile) => {
     const transport = generateMailTransporter();
     const {name, email, userId} = profile;
-    await EmailVerificationToken.create({
-        owner: userId,
-        token,
-    });
+    
     const welcomeMessage = `Hi ${name}, welcome! There are so many things that we do for verified users. use the given OTP to verify your email.`;
     transport.sendMail({
         to: email,
@@ -47,15 +49,75 @@ export const sendVerificationMail = async (token: string, profile: Profile) => {
         attachments: [
         {
         filename: "logo.png",
-        path: path.join(__dirname, "../mail/logo.png"),
+        path: path.join(__dirname, "../mail/attachments/logo.png"),
         cid: "logo"
         },
         {
         filename: "welcome.png",
-        path: path.join(__dirname, "../mail/welcome.png"),
+        path: path.join(__dirname, "../mail/attachments/welcome.png"),
         cid: "welcome"
         }
     ]
     });
 }
-  
+export const sendForgetPasswordLink =async (options: Options) => {
+    const transport = generateMailTransporter();
+    const {email, link} = options;
+    
+    const message = `We received a request for passowrd reset. Please follow the link bellow to change your password`;
+    transport.sendMail({
+        to: email,
+        from: VERIFICATION_EMAIL,
+        subject: "Reset passowrd link",
+        html: generateTemplate({
+        title: "Forget passowrd",
+        message,
+        logo: "cid:logo",
+        banner: "cid:forget_password",
+        link,
+        btnTitle: "Reset password"
+        }),
+        attachments: [
+        {
+        filename: "logo.png",
+        path: path.join(__dirname, "../mail/attachments/logo.png"),
+        cid: "logo"
+        },
+        {
+        filename: "forget_password.png",
+        path: path.join(__dirname, "../mail/attachments/forget_password.png"),
+        cid: "forget_password"
+        }
+    ]
+    });
+};
+export const sendPassResetSuccessEmail = async (name: string, email: string ) => {
+    const transport = generateMailTransporter();
+    
+    const message = `Your password was successfully updated`;
+    transport.sendMail({
+        to: email,
+        from: VERIFICATION_EMAIL,
+        subject: "Password reset successfull",
+        html: generateTemplate({
+        title: "Password reset successfull",
+        message,
+        logo: "cid:logo",
+        banner: "cid:forget_password",
+        link : SIGN_IN_URL,
+        btnTitle: "Log in"
+        }),
+        attachments: [
+        {
+        filename: "logo.png",
+        path: path.join(__dirname, "../mail/attachments/logo.png"),
+        cid: "logo"
+        },
+        {
+        filename: "forget_password.png",
+        path: path.join(__dirname, "../mail/attachments/forget_password.png"),
+        cid: "forget_password"
+        }
+    ]
+    });
+};
